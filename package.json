@@ -1,0 +1,12 @@
+{
+  "name": "typetasks",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TypeTasks typed logic layer",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}
