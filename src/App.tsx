@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   List,
   Menu,
+  Moon,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -21,7 +22,10 @@ import {
   Settings,
   SlidersHorizontal,
   Sparkles,
+  Sun,
   Trash2,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import {
@@ -35,10 +39,19 @@ import {
   type TaskPriority,
   type TaskStatus,
 } from "../model";
+import CommandPalette from "./components/CommandPalette";
 import FocusTimer from "./components/FocusTimer";
 import SettingsDialog, { type AppTheme } from "./components/SettingsDialog";
 import TaskDialog from "./components/TaskDialog";
 import Toast from "./components/Toast";
+import ZenModal from "./components/ZenModal";
+import { triggerConfetti } from "./lib/confetti";
+import {
+  isSoundEnabled,
+  playCompleteSound,
+  playPopSound,
+  setSoundEnabled,
+} from "./lib/sound";
 import {
   dateFromKey,
   formatLongDate,
@@ -115,12 +128,12 @@ function labelForView(view: ViewId, project?: string): string {
 }
 
 function pageIntro(view: ViewId, project?: string): string {
-  if (view === "inbox") return "Everything on your plate, gathered in one calm place.";
-  if (view === "today") return "A focused view of what is due today.";
-  if (view === "upcoming") return "Look a little further ahead and plan with room to breathe.";
-  if (view === "completed") return "A record of the work you have already moved forward.";
-  if (view === "project") return `The tasks and next steps for ${project ?? "this project"}.`;
-  return "A clear space to make meaningful progress.";
+  if (view === "inbox") return "Everything on your plate, gathered in one calm, high-performance workspace.";
+  if (view === "today") return "A sharp, focused view of what is due today.";
+  if (view === "upcoming") return "Look further ahead and plan with clarity and room to breathe.";
+  if (view === "completed") return "A record of milestones and work you have pushed forward.";
+  if (view === "project") return `Tasks and key next steps for ${project ?? "this project"}.`;
+  return "A quiet, high-efficiency space to make meaningful progress.";
 }
 
 function sortTaskList(tasks: Task[], sortMode: SortMode): Task[] {
@@ -172,11 +185,13 @@ function Sidebar({
   const doneCount = tasks.filter((task) => task.status === "done").length;
 
   function select(view: ViewId) {
+    playPopSound();
     onSelectView(view);
     onCloseMobile();
   }
 
   function selectProject(project: string) {
+    playPopSound();
     onSelectProject(project);
     onCloseMobile();
   }
@@ -187,18 +202,18 @@ function Sidebar({
       <aside className={`sidebar ${open ? "sidebar-open" : ""}`} aria-label="Main navigation">
         <div className="sidebar-top">
           <button className="brand-lockup" type="button" onClick={() => select("overview")} aria-label="TypeTasks home">
-            <span className="brand-mark"><Check size={19} strokeWidth={2.6} /></span>
+            <span className="brand-mark"><Check size={19} strokeWidth={2.8} /></span>
             <span className="brand-name">type<span>tasks</span></span>
           </button>
           <button className="workspace-switcher" type="button" onClick={() => onOpenSettings()}>
             <span className="workspace-avatar">T</span>
-            <span className="workspace-name"><strong>My workspace</strong><small>Personal space</small></span>
-            <ChevronDown size={15} />
+            <span className="workspace-name"><strong>My workspace</strong><small>Personal Space</small></span>
+            <ChevronDown size={14} />
           </button>
         </div>
 
-        <button className="sidebar-create-button" type="button" onClick={onNewTask}>
-          <Plus size={17} strokeWidth={2.3} />
+        <button className="sidebar-create-button" type="button" onClick={() => { playPopSound(); onNewTask(); }}>
+          <Plus size={17} strokeWidth={2.4} />
           <span>New task</span>
           <kbd>N</kbd>
         </button>
@@ -213,7 +228,15 @@ function Sidebar({
 
           <div className="nav-section-heading">
             <span className="nav-section-label">PROJECTS</span>
-            <button type="button" className="nav-add-project" aria-label="Create a task in a new project" title="Create a task in a new project" onClick={() => onNewTask()}><Plus size={15} /></button>
+            <button
+              type="button"
+              className="nav-add-project"
+              aria-label="Create a task in a new project"
+              title="Create task"
+              onClick={() => { playPopSound(); onNewTask(); }}
+            >
+              <Plus size={14} />
+            </button>
           </div>
           <div className="project-nav-list">
             {projects.map((project) => {
@@ -236,18 +259,18 @@ function Sidebar({
 
         <div className="sidebar-bottom">
           <div className="sidebar-note">
-            <div className="sidebar-note-icon"><Sparkles size={16} /></div>
-            <div><strong>One thing at a time.</strong><span>Your next step is enough.</span></div>
-            <button type="button" onClick={() => select("overview")} aria-label="Open focus session"><ChevronRight size={15} /></button>
+            <div className="sidebar-note-icon"><Sparkles size={15} /></div>
+            <div><strong>Flow state.</strong><span>One clear step at a time.</span></div>
+            <button type="button" onClick={() => select("overview")} aria-label="Open focus session"><ChevronRight size={14} /></button>
           </div>
-          <button type="button" className="sidebar-settings" onClick={onOpenSettings}>
-            <Settings size={17} /> <span>Settings</span>
+          <button type="button" className="sidebar-settings" onClick={() => { playPopSound(); onOpenSettings(); }}>
+            <Settings size={16} /> <span>Settings</span>
             <span className="settings-shortcut">⌘ ,</span>
           </button>
           <div className="sidebar-footer">
             <div className="footer-avatar">TT</div>
-            <div><strong>Local workspace</strong><span>Saved on this device</span></div>
-            <span className="local-status-dot" title="Your tasks are saved locally" />
+            <div><strong>Local workspace</strong><span>Saved locally</span></div>
+            <span className="local-status-dot" title="Your tasks are saved locally on this machine" />
           </div>
         </div>
       </aside>
@@ -329,7 +352,7 @@ function TaskRow({
           aria-label={done ? `Reopen ${task.title}` : `Complete ${task.title}`}
           onClick={() => onStatusChange(task, done ? "todo" : "done")}
         >
-          {done ? <Check size={13} strokeWidth={2.6} /> : task.status === "in-progress" ? <span /> : <Circle size={19} strokeWidth={1.5} />}
+          {done ? <Check size={14} strokeWidth={2.8} /> : task.status === "in-progress" ? <span /> : <Circle size={19} strokeWidth={1.6} />}
         </button>
         <button type="button" className="task-title-button" onClick={() => onOpen(task)}>
           <span className="task-title">{task.title}</span>
@@ -363,8 +386,13 @@ function CompactTaskRow({
   const done = task.status === "done";
   return (
     <div className={`compact-task-row ${done ? "compact-task-done" : ""}`}>
-      <button type="button" className={`task-check ${done ? "checked" : ""}`} onClick={() => onStatusChange(task, done ? "todo" : "done")} aria-label={done ? `Reopen ${task.title}` : `Complete ${task.title}`}>
-        {done ? <Check size={13} /> : <Circle size={18} strokeWidth={1.5} />}
+      <button
+        type="button"
+        className={`task-check ${done ? "checked" : ""}`}
+        onClick={() => onStatusChange(task, done ? "todo" : "done")}
+        aria-label={done ? `Reopen ${task.title}` : `Complete ${task.title}`}
+      >
+        {done ? <Check size={14} strokeWidth={2.8} /> : <Circle size={18} strokeWidth={1.6} />}
       </button>
       <button type="button" className="compact-task-copy" onClick={() => onOpen(task)}>
         <span className="compact-task-title">{task.title}</span>
@@ -456,7 +484,11 @@ function BoardView({
               <span className={`board-status-dot board-status-${column.tone}`} />
               <h3>{column.title}</h3>
               <span className="board-column-count">{columnTasks.length}</span>
-              {column.status === "todo" && <button type="button" className="board-add-button" aria-label="Add task" onClick={onNewTask}><Plus size={16} /></button>}
+              {column.status === "todo" && (
+                <button type="button" className="board-add-button" aria-label="Add task" onClick={onNewTask}>
+                  <Plus size={16} />
+                </button>
+              )}
             </div>
             <div className="board-column-cards">
               {columnTasks.map((task) => <TaskCard key={task.id} task={task} onOpen={onOpen} onStatusChange={onStatusChange} onDragStart={handleDragStart} />)}
@@ -473,8 +505,8 @@ function EmptyState({ onNewTask, isSearch }: { onNewTask: () => void; isSearch: 
   return (
     <div className="empty-state">
       <div className="empty-state-art"><Inbox size={26} strokeWidth={1.5} /></div>
-      <h3>{isSearch ? "No tasks match that search" : "A little breathing room"}</h3>
-      <p>{isSearch ? "Try a different phrase or loosen your filters." : "Nothing to show here yet. Add a task when you are ready."}</p>
+      <h3>{isSearch ? "No tasks match that query" : "A little breathing room"}</h3>
+      <p>{isSearch ? "Try adjusting your search terms or filters." : "Nothing pending right now. Add a task whenever inspiration strikes."}</p>
       {!isSearch && <button className="button button-primary" type="button" onClick={onNewTask}><Plus size={16} /> Create a task</button>}
     </div>
   );
@@ -494,6 +526,7 @@ function TasksWorkspace({
   onSortMode,
   onLayout,
   onNewTask,
+  onQuickAdd,
   onOpenTask,
   onDeleteTask,
   onStatusChange,
@@ -511,11 +544,21 @@ function TasksWorkspace({
   onSortMode: (sort: SortMode) => void;
   onLayout: (layout: LayoutMode) => void;
   onNewTask: () => void;
+  onQuickAdd: (title: string) => void;
   onOpenTask: (task: Task) => void;
   onDeleteTask: (task: Task) => void;
   onStatusChange: (task: Task, status: TaskStatus) => void;
 }) {
+  const [quickInput, setQuickInput] = useState("");
   const allMatchingTasks = tasks;
+
+  function handleQuickSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!quickInput.trim()) return;
+    onQuickAdd(quickInput.trim());
+    setQuickInput("");
+  }
+
   return (
     <section className="tasks-page">
       <div className="page-heading-row">
@@ -526,6 +569,16 @@ function TasksWorkspace({
         </div>
         <button className="button button-primary page-new-task" type="button" onClick={onNewTask}><Plus size={16} /> New task</button>
       </div>
+
+      <form className="quick-add-task-bar" onSubmit={handleQuickSubmit}>
+        <Plus size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
+        <input
+          placeholder={`Quick add task to ${title}... (Press Enter to save)`}
+          value={quickInput}
+          onChange={(e) => setQuickInput(e.target.value)}
+        />
+        <span className="quick-add-hint"><kbd>↵</kbd> Enter</span>
+      </form>
 
       <div className="tasks-toolbar">
         <div className="toolbar-leading">
@@ -643,21 +696,28 @@ function Dashboard({
   tasks,
   duration,
   onNewTask,
+  onQuickAdd,
   onOpenTask,
   onStatusChange,
   onGoToTasks,
   onGoToUpcoming,
   onFocusComplete,
+  onOpenZen,
+  onDurationChange,
 }: {
   tasks: Task[];
   duration: number;
   onNewTask: () => void;
+  onQuickAdd: (title: string) => void;
   onOpenTask: (task: Task) => void;
   onStatusChange: (task: Task, status: TaskStatus) => void;
   onGoToTasks: () => void;
   onGoToUpcoming: () => void;
   onFocusComplete: () => void;
+  onOpenZen: () => void;
+  onDurationChange: (minutes: number) => void;
 }) {
+  const [quickInput, setQuickInput] = useState("");
   const todayKey = localDateKey(new Date());
   const openTasks = tasks.filter((task) => task.status !== "done");
   const dueToday = openTasks.filter((task) => task.dueDate === todayKey);
@@ -666,13 +726,20 @@ function Dashboard({
   const dueSoonCount = openTasks.filter((task) => isWithinNextDays(task.dueDate, 7)).length;
   const greeting = greetingForHour();
 
+  function handleQuickSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!quickInput.trim()) return;
+    onQuickAdd(quickInput.trim());
+    setQuickInput("");
+  }
+
   return (
     <section className="dashboard-page">
       <div className="dashboard-hero">
         <div className="dashboard-hero-copy">
           <span className="eyebrow hero-date">{formatLongDate()}</span>
           <h1>{greeting},<br /><span>make room for good work.</span></h1>
-          <p>Keep your attention on what matters. You have got this.</p>
+          <p>Keep your attention on what matters. Flow state unlocked.</p>
         </div>
         <div className="hero-art" aria-hidden="true">
           <div className="hero-art-orbit orbit-one" /><div className="hero-art-orbit orbit-two" />
@@ -683,11 +750,21 @@ function Dashboard({
         <button className="button button-primary dashboard-new-task" type="button" onClick={onNewTask}><Plus size={16} /> New task</button>
       </div>
 
+      <form className="quick-add-task-bar" onSubmit={handleQuickSubmit}>
+        <Plus size={16} style={{ color: "var(--accent)", flexShrink: 0 }} />
+        <input
+          placeholder="Capture a thought or task quickly... (Press Enter to save)"
+          value={quickInput}
+          onChange={(e) => setQuickInput(e.target.value)}
+        />
+        <span className="quick-add-hint"><kbd>↵</kbd> Enter</span>
+      </form>
+
       <div className="stats-grid">
-        <StatCard label="Open tasks" value={openTasks.length} detail="ready to move" icon={<Inbox size={18} />} tone="olive" />
-        <StatCard label="Due today" value={dueToday.length} detail={dueToday.length === 1 ? "one thing at a time" : "keep it focused"} icon={<CalendarDays size={18} />} tone="orange" />
-        <StatCard label="In progress" value={tasks.filter((task) => task.status === "in-progress").length} detail="already underway" icon={<Clock3 size={18} />} tone="blue" />
-        <StatCard label="Done this week" value={completedThisWeek} detail="nice work" icon={<CheckCircle2 size={18} />} tone="green" />
+        <StatCard label="Open tasks" value={openTasks.length} detail="ready to move" icon={<Inbox size={20} />} tone="olive" />
+        <StatCard label="Due today" value={dueToday.length} detail={dueToday.length === 1 ? "one thing at a time" : "keep it focused"} icon={<CalendarDays size={20} />} tone="orange" />
+        <StatCard label="In progress" value={tasks.filter((task) => task.status === "in-progress").length} detail="underway" icon={<Clock3 size={20} />} tone="blue" />
+        <StatCard label="Done this week" value={completedThisWeek} detail="nice work" icon={<CheckCircle2 size={20} />} tone="green" />
       </div>
 
       <div className="dashboard-columns">
@@ -697,7 +774,7 @@ function Dashboard({
               <div>
                 <span className="eyebrow">A GOOD PLACE TO START</span>
                 <h2 id="radar-heading">On your radar</h2>
-                <p>{dueToday.length ? `${dueToday.length} ${dueToday.length === 1 ? "task is" : "tasks are"} due today` : "A few thoughtful next steps"}</p>
+                <p>{dueToday.length ? `${dueToday.length} ${dueToday.length === 1 ? "task is" : "tasks are"} due today` : "Thoughtful next steps"}</p>
               </div>
               <button className="text-button" type="button" onClick={onGoToTasks}>All tasks <ArrowRight size={15} /></button>
             </div>
@@ -713,17 +790,23 @@ function Dashboard({
 
           <section className="dashboard-lower-card">
             <div className="lower-card-icon"><Sparkles size={18} /></div>
-            <div><strong>Small steps count.</strong><p>Pick one task, give it a little attention, and let that be enough for now.</p></div>
+            <div><strong>Small steps build momentum.</strong><p>Pick one task, give it focused attention, and let that be enough for now.</p></div>
             <span className="lower-card-mark">✳</span>
           </section>
         </div>
 
         <aside className="dashboard-rail">
-          <FocusTimer tasks={tasks} duration={duration} onComplete={onFocusComplete} />
+          <FocusTimer
+            tasks={tasks}
+            duration={duration}
+            onComplete={onFocusComplete}
+            onOpenZen={onOpenZen}
+            onDurationChange={onDurationChange}
+          />
           <WeeklyPulse tasks={tasks} />
           <div className="upcoming-nudge">
             <div className="upcoming-nudge-icon"><CalendarDays size={16} /></div>
-            <div><strong>{dueSoonCount} upcoming</strong><span>tasks with a date in the next week</span></div>
+            <div><strong>{dueSoonCount} upcoming</strong><span>tasks due within 7 days</span></div>
             <button type="button" onClick={onGoToUpcoming} aria-label="View upcoming tasks"><ArrowRight size={15} /></button>
           </div>
         </aside>
@@ -742,10 +825,14 @@ function App() {
   const [sortMode, setSortMode] = useState<SortMode>("due");
   const [layout, setLayout] = useState<LayoutMode>("list");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [presetTitle, setPresetTitle] = useState("");
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [zenOpen, setZenOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [theme, setTheme] = useState<AppTheme>(readTheme);
+  const [soundEnabled, setSoundEnabledState] = useState(isSoundEnabled);
   const [focusDuration, setFocusDuration] = useState(readFocusDuration);
   const [toast, setToast] = useState<ToastState | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -780,6 +867,13 @@ function App() {
     const timer = window.setTimeout(() => setToast(null), 5000);
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  const toggleSound = useCallback(() => {
+    const next = !soundEnabled;
+    setSoundEnabledState(next);
+    setSoundEnabled(next);
+    if (next) playPopSound();
+  }, [soundEnabled]);
 
   const projects = useMemo(() => {
     const fromTasks = tasks.map((task) => task.project).filter((project): project is string => Boolean(project));
@@ -818,27 +912,36 @@ function App() {
 
   const viewTitle = labelForView(view, selectedProject);
 
-  const openNewTask = useCallback(() => {
+  const openNewTaskWithTitle = useCallback((preset = "") => {
     taskDialogTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setEditingTask(null);
+    setPresetTitle(preset);
     setDialogOpen(true);
   }, []);
 
+  const openNewTask = useCallback(() => {
+    openNewTaskWithTitle("");
+  }, [openNewTaskWithTitle]);
+
   const openTask = useCallback((task: Task) => {
+    playPopSound();
     taskDialogTriggerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setEditingTask(task);
+    setPresetTitle("");
     setDialogOpen(true);
   }, []);
 
   const closeTaskDialog = useCallback(() => {
     setDialogOpen(false);
     setEditingTask(null);
+    setPresetTitle("");
     window.requestAnimationFrame(() => {
       if (taskDialogTriggerRef.current?.isConnected) taskDialogTriggerRef.current.focus();
     });
   }, []);
 
   const handleSaveTask = useCallback((input: CreateTaskInput) => {
+    playPopSound();
     if (editingTask) {
       setTasks((current) => updateTask(current, editingTask.id, input));
       setToast({ message: "Task updated" });
@@ -849,7 +952,19 @@ function App() {
     closeTaskDialog();
   }, [editingTask, closeTaskDialog]);
 
+  const handleQuickAddTask = useCallback((title: string) => {
+    playPopSound();
+    setTasks((current) => createTask(current, {
+      title,
+      project: view === "project" ? selectedProject : "Personal",
+      status: view === "completed" ? "done" : "todo",
+      priority: "medium",
+    }));
+    setToast({ message: "Task added to workspace" });
+  }, [view, selectedProject]);
+
   const handleDeleteTask = useCallback((task: Task) => {
+    playPopSound();
     setTasks((current) => deleteTask(current, task.id));
     setToast({ message: "Task deleted", undoTask: task });
   }, []);
@@ -857,6 +972,7 @@ function App() {
   const handleUndoDelete = useCallback(() => {
     const deleted = toast?.undoTask;
     if (!deleted) return;
+    playPopSound();
     setTasks((current) => {
       if (current.some((task) => task.id === deleted.id)) return current;
       let id = deleted.id;
@@ -868,16 +984,24 @@ function App() {
   }, [toast]);
 
   const handleStatusChange = useCallback((task: Task, status: TaskStatus) => {
+    if (status === "done") {
+      playCompleteSound();
+      triggerConfetti();
+    } else {
+      playPopSound();
+    }
     setTasks((current) => status === "done" ? completeTask(current, task.id) : setTaskStatus(current, task.id, status));
   }, []);
 
   const handleImport = useCallback((importedTasks: Task[]) => {
+    playPopSound();
     setTasks(importedTasks);
     setSettingsOpen(false);
     setToast({ message: `${importedTasks.length} ${importedTasks.length === 1 ? "task" : "tasks"} imported` });
   }, []);
 
   const handleExport = useCallback(() => {
+    playPopSound();
     const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -891,14 +1015,15 @@ function App() {
   }, [tasks]);
 
   const handleResetDemo = useCallback(() => {
-    if (!window.confirm("Restore the sample workspace? This will replace the tasks currently saved on this device.")) return;
+    if (!window.confirm("Restore sample workspace? This will replace the tasks currently saved on this device.")) return;
+    playPopSound();
     setTasks(createDemoTasks());
     setSettingsOpen(false);
     setToast({ message: "Sample workspace restored" });
   }, []);
 
   const handleFocusComplete = useCallback(() => {
-    setToast({ message: "Focus session complete. Nice work." });
+    setToast({ message: "Focus session complete. Tremendous work!" });
   }, []);
 
   useEffect(() => {
@@ -909,24 +1034,27 @@ function App() {
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        searchInputRef.current?.focus();
+        setCommandPaletteOpen((prev) => !prev);
       } else if ((event.metaKey || event.ctrlKey) && event.key === ",") {
         event.preventDefault();
         setSettingsOpen(true);
-      } else if (event.key.toLowerCase() === "n" && !isTyping && !event.metaKey && !event.ctrlKey && !dialogOpen && !settingsOpen) {
+      } else if (event.key.toLowerCase() === "n" && !isTyping && !event.metaKey && !event.ctrlKey && !dialogOpen && !settingsOpen && !commandPaletteOpen && !zenOpen) {
         event.preventDefault();
         openNewTask();
       } else if (event.key === "Escape") {
         setSettingsOpen(false);
+        setCommandPaletteOpen(false);
+        setZenOpen(false);
         closeTaskDialog();
         setMobileNavOpen(false);
       }
     }
     window.addEventListener("keydown", handleShortcut);
     return () => window.removeEventListener("keydown", handleShortcut);
-  }, [closeTaskDialog, dialogOpen, openNewTask, settingsOpen]);
+  }, [closeTaskDialog, commandPaletteOpen, dialogOpen, openNewTask, settingsOpen, zenOpen]);
 
   function selectView(nextView: ViewId) {
+    playPopSound();
     setView(nextView);
     setStatusFilter("all");
     setPriorityFilter("all");
@@ -934,6 +1062,7 @@ function App() {
   }
 
   function selectProject(project: string) {
+    playPopSound();
     setSelectedProject(project);
     setView("project");
     setStatusFilter("all");
@@ -977,10 +1106,65 @@ function App() {
                   if (nextQuery && view === "overview") setView("inbox");
                 }}
               />
-              {query ? <button type="button" className="search-clear" aria-label="Clear search" onClick={() => setQuery("")}><X size={14} /></button> : <kbd><span>⌘</span> K</kbd>}
+              {query ? (
+                <button
+                  type="button"
+                  className="search-clear"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
+                  <X size={14} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="search-kbd-btn"
+                  onClick={() => setCommandPaletteOpen(true)}
+                  title="Open Command Palette (⌘K)"
+                >
+                  <kbd><span>⌘</span> K</kbd>
+                </button>
+              )}
             </div>
-            <button className="topbar-icon-button" type="button" title="Settings" aria-label="Open settings" onClick={() => setSettingsOpen(true)}><Settings size={17} /></button>
-            <button className="topbar-avatar" type="button" aria-label="Local workspace profile" onClick={() => setSettingsOpen(true)}>T</button>
+            <button
+              className="topbar-icon-button"
+              type="button"
+              title={soundEnabled ? "Mute audio effects" : "Enable sound effects"}
+              aria-label="Toggle sound effects"
+              onClick={toggleSound}
+            >
+              {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            </button>
+            <button
+              className="topbar-icon-button"
+              type="button"
+              title="Enter Zen Focus mode"
+              aria-label="Deep focus mode"
+              onClick={() => {
+                playPopSound();
+                setZenOpen(true);
+              }}
+            >
+              <Sparkles size={16} />
+            </button>
+            <button
+              className="topbar-icon-button"
+              type="button"
+              title={theme === "dark" ? "Switch to Light mode" : "Switch to Dark mode"}
+              aria-label="Toggle theme appearance"
+              onClick={() => {
+                playPopSound();
+                setTheme((t) => (t === "dark" ? "light" : "dark"));
+              }}
+            >
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <button className="topbar-icon-button" type="button" title="Settings (⌘,)" aria-label="Open settings" onClick={() => { playPopSound(); setSettingsOpen(true); }}>
+              <Settings size={16} />
+            </button>
+            <button className="topbar-avatar" type="button" aria-label="Local workspace profile" onClick={() => { playPopSound(); setSettingsOpen(true); }}>
+              T
+            </button>
           </div>
         </header>
 
@@ -990,11 +1174,17 @@ function App() {
               tasks={tasks}
               duration={focusDuration}
               onNewTask={openNewTask}
+              onQuickAdd={handleQuickAddTask}
               onOpenTask={openTask}
               onStatusChange={handleStatusChange}
               onGoToTasks={() => selectView("inbox")}
               onGoToUpcoming={() => selectView("upcoming")}
               onFocusComplete={handleFocusComplete}
+              onOpenZen={() => {
+                playPopSound();
+                setZenOpen(true);
+              }}
+              onDurationChange={(mins) => setFocusDuration(mins)}
             />
           </div>
           {view !== "overview" && (
@@ -1012,6 +1202,7 @@ function App() {
               onSortMode={setSortMode}
               onLayout={setLayout}
               onNewTask={openNewTask}
+              onQuickAdd={handleQuickAddTask}
               onOpenTask={openTask}
               onDeleteTask={handleDeleteTask}
               onStatusChange={handleStatusChange}
@@ -1020,10 +1211,39 @@ function App() {
         </main>
       </div>
 
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onSelectView={selectView}
+        onSelectProject={selectProject}
+        onNewTask={(preset) => openNewTaskWithTitle(preset)}
+        projects={projects}
+        theme={theme}
+        onToggleTheme={() => {
+          playPopSound();
+          setTheme((t) => (t === "dark" ? "light" : "dark"));
+        }}
+        soundEnabled={soundEnabled}
+        onToggleSound={toggleSound}
+        onOpenSettings={() => {
+          playPopSound();
+          setSettingsOpen(true);
+        }}
+      />
+
+      <ZenModal
+        open={zenOpen}
+        tasks={tasks}
+        duration={focusDuration}
+        onClose={() => setZenOpen(false)}
+        onTaskComplete={(task) => handleStatusChange(task, "done")}
+      />
+
       <TaskDialog
         open={dialogOpen}
         task={editingTask}
         projects={projects}
+        initialTitle={presetTitle}
         onClose={closeTaskDialog}
         onSave={handleSaveTask}
         onDelete={(task) => {
@@ -1031,10 +1251,13 @@ function App() {
           handleDeleteTask(task);
         }}
       />
+
       <SettingsDialog
         open={settingsOpen}
         theme={theme}
         focusDuration={focusDuration}
+        soundEnabled={soundEnabled}
+        onToggleSound={toggleSound}
         onClose={() => setSettingsOpen(false)}
         onThemeChange={setTheme}
         onFocusDurationChange={setFocusDuration}
@@ -1042,7 +1265,15 @@ function App() {
         onImport={handleImport}
         onReset={handleResetDemo}
       />
-      {toast && <Toast message={toast.message} undoTask={toast.undoTask} onUndo={handleUndoDelete} onDismiss={() => setToast(null)} />}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          undoTask={toast.undoTask}
+          onUndo={handleUndoDelete}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

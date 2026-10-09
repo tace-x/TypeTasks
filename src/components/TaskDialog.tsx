@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, Folder, Flag, Trash2, X } from "lucide-react";
 import type { CreateTaskInput, Task, TaskPriority, TaskStatus } from "../../model";
+import { playPopSound } from "../lib/sound";
 
 interface TaskDialogProps {
   open: boolean;
   task: Task | null;
   projects: string[];
+  initialTitle?: string;
   onClose: () => void;
   onSave: (input: CreateTaskInput) => void;
   onDelete: (task: Task) => void;
@@ -24,7 +26,15 @@ const statusOptions: { value: TaskStatus; label: string }[] = [
   { value: "done", label: "Done" },
 ];
 
-export default function TaskDialog({ open, task, projects, onClose, onSave, onDelete }: TaskDialogProps) {
+export default function TaskDialog({
+  open,
+  task,
+  projects,
+  initialTitle = "",
+  onClose,
+  onSave,
+  onDelete,
+}: TaskDialogProps) {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [project, setProject] = useState("Personal");
@@ -34,13 +44,13 @@ export default function TaskDialog({ open, task, projects, onClose, onSave, onDe
 
   useEffect(() => {
     if (!open) return;
-    setTitle(task?.title ?? "");
+    setTitle(task?.title ?? initialTitle);
     setNotes(task?.notes ?? "");
     setProject(task?.project ?? "Personal");
     setPriority(task?.priority ?? "medium");
     setDueDate(task?.dueDate ?? "");
     setStatus(task?.status ?? "todo");
-  }, [open, task]);
+  }, [open, task, initialTitle]);
 
   useEffect(() => {
     if (!open) return;
@@ -58,6 +68,7 @@ export default function TaskDialog({ open, task, projects, onClose, onSave, onDe
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
 
+    playPopSound();
     onSave({
       title: cleanTitle,
       notes: notes.trim() || undefined,
@@ -109,7 +120,7 @@ export default function TaskDialog({ open, task, projects, onClose, onSave, onDe
               id="task-notes"
               rows={3}
               maxLength={800}
-              placeholder="Add a little context, a next step, or a link…"
+              placeholder="Add context, bullet points, or next steps…"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
             />
@@ -154,9 +165,18 @@ export default function TaskDialog({ open, task, projects, onClose, onSave, onDe
 
           <div className="modal-footer">
             {task ? (
-              <button className="delete-task-button" type="button" onClick={() => onDelete(task)}><Trash2 size={14} /> Delete task</button>
+              <button
+                className="delete-task-button"
+                type="button"
+                onClick={() => {
+                  playPopSound();
+                  onDelete(task);
+                }}
+              >
+                <Trash2 size={14} /> Delete task
+              </button>
             ) : (
-              <p>Tip: press <kbd>⌘</kbd> <kbd>Enter</kbd> to save</p>
+              <p>Press <kbd>⌘</kbd> <kbd>Enter</kbd> to save immediately</p>
             )}
             <div className="modal-actions">
               <button className="button button-quiet" type="button" onClick={onClose}>Cancel</button>
