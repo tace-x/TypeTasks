@@ -2,7 +2,7 @@
 
 A calm, local-first, ultra-fast keyboard-first task workspace built on the typed TypeTasks engine. Designed for deep focus, quick capture, thoughtful planning, and high-performance execution.
 
-## 🌐 Live Demo
+## 🌐 Live Demo:
 
 [https://typetask-nine.vercel.app](https://typetask-nine.vercel.app)
 
