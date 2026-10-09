@@ -1,6 +1,6 @@
 # TypeTasks — Part 1
 
-Typed  logic layer for the TypeTasks task tracker.
+Typed logic layer for the TypeTasks task tracker.
 
 ## Included
 
